@@ -36,13 +36,16 @@ const pricingFile = path.join(WORKSPACE_DIR, 'data', 'model_pricing_usd_per_mill
 const htmlPath = path.join(__dirname, 'index.html');
 
 const DEFAULT_MODEL_PRICING = {
-  'openai/gpt-4o-mini': { input: 0.15, output: 0.60, cacheRead: 0.075, cacheWrite: 0.30 },
-  'openai/gpt-4.1-mini': { input: 0.40, output: 1.60, cacheRead: 0.20, cacheWrite: 0.80 },
+  'anthropic/claude-opus-4-6': { input: 15.00, output: 75.00, cacheRead: 1.875, cacheWrite: 18.75 },
+  'anthropic/claude-opus-4-5': { input: 15.00, output: 75.00, cacheRead: 1.875, cacheWrite: 18.75 },
+  'anthropic/claude-sonnet-4-6': { input: 3.00, output: 15.00, cacheRead: 0.30, cacheWrite: 3.75 },
   'anthropic/claude-sonnet-4-5': { input: 3.00, output: 15.00, cacheRead: 0.30, cacheWrite: 3.75 },
   'anthropic/claude-3-5-haiku-latest': { input: 0.80, output: 4.00, cacheRead: 0.08, cacheWrite: 1.00 },
-  'google/gemini-3-flash-preview': { input: 0.50, output: 3.00, cacheRead: 0.05, cacheWrite: 0.50 },
-  'xai/grok-4-1-fast': { input: 0.20, output: 0.50, cacheRead: 0.05, cacheWrite: 0.20 },
-  'nvidia/moonshotai/kimi-k2.5': { input: 0.00, output: 0.00, cacheRead: 0.00, cacheWrite: 0.00 }
+  'openai/gpt-4o-mini': { input: 0.15, output: 0.60, cacheRead: 0.075, cacheWrite: 0.30 },
+  'openai/gpt-4.1-mini': { input: 0.40, output: 1.60, cacheRead: 0.20, cacheWrite: 0.80 },
+  'google/gemini-3-pro-preview': { input: 1.25, output: 10.00, cacheRead: 0.31, cacheWrite: 4.50 },
+  'google/gemini-3-flash-preview': { input: 0.15, output: 0.60, cacheRead: 0.04, cacheWrite: 0.15 },
+  'xai/grok-4-1-fast': { input: 0.20, output: 0.50, cacheRead: 0.05, cacheWrite: 0.20 }
 };
 
 function toNum(v) {
@@ -61,6 +64,9 @@ function normalizeModel(provider, model) {
   if (m.toLowerCase().startsWith(pref)) m = m.slice(pref.length);
   const ml = m.toLowerCase();
   if (p === 'anthropic') {
+    if (ml.startsWith('claude-opus-4-6')) return 'claude-opus-4-6';
+    if (ml.startsWith('claude-opus-4-5')) return 'claude-opus-4-5';
+    if (ml.startsWith('claude-sonnet-4-6')) return 'claude-sonnet-4-6';
     if (ml.startsWith('claude-sonnet-4-5')) return 'claude-sonnet-4-5';
     if (ml.startsWith('claude-3-5-haiku')) return 'claude-3-5-haiku-latest';
   }
