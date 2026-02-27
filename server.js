@@ -936,12 +936,26 @@ function getSystemStats() {
     if (process.platform === 'linux') {
       try {
         const { execSync } = require('child_process');
-        const logs = execSync("journalctl -u openclaw --since '7 days ago' --no-pager -o short 2>/dev/null | grep -ci 'SIGABRT\\|SIGSEGV\\|exit code [1-9]\\|process crashed\\|fatal error' || echo 0", { encoding: 'utf8' }).trim();
+        // Try system scope first, then user scope
+        let logs = '';
+        try {
+          logs = execSync("journalctl -u openclaw --since '7 days ago' --no-pager -o short 2>/dev/null | grep -ci 'SIGABRT\\|SIGSEGV\\|exit code [1-9]\\|process crashed\\|fatal error' || echo 0", { encoding: 'utf8' }).trim();
+        } catch {
+          // If system fails, try user scope
+          logs = execSync("journalctl --user -u openclaw --since '7 days ago' --no-pager -o short 2>/dev/null | grep -ci 'SIGABRT\\|SIGSEGV\\|exit code [1-9]\\|process crashed\\|fatal error' || echo 0", { encoding: 'utf8' }).trim();
+        }
         crashCount = parseInt(logs, 10) || 0;
       } catch {}
       try {
         const { execSync } = require('child_process');
-        const logs = execSync("journalctl -u openclaw --since today --no-pager -o short 2>/dev/null | grep -ci 'SIGABRT\\|SIGSEGV\\|exit code [1-9]\\|process crashed\\|fatal error' || echo 0", { encoding: 'utf8' }).trim();
+        // Try system scope first, then user scope
+        let logs = '';
+        try {
+          logs = execSync("journalctl -u openclaw --since today --no-pager -o short 2>/dev/null | grep -ci 'SIGABRT\\|SIGSEGV\\|exit code [1-9]\\|process crashed\\|fatal error' || echo 0", { encoding: 'utf8' }).trim();
+        } catch {
+          // If system fails, try user scope
+          logs = execSync("journalctl --user -u openclaw --since today --no-pager -o short 2>/dev/null | grep -ci 'SIGABRT\\|SIGSEGV\\|exit code [1-9]\\|process crashed\\|fatal error' || echo 0", { encoding: 'utf8' }).trim();
+        }
         crashesToday = parseInt(logs, 10) || 0;
       } catch {}
     }
@@ -2030,26 +2044,49 @@ const server = http.createServer((req, res) => {
         };
         const units = serviceUnitCandidates[service] || [service];
         const scopes = ['system', 'user'];
-        let logs = '';
-        let source = '';
+        const sourceLogs = [];
+        
+        // Collect logs from all scopes and units
         for (const scope of scopes) {
           for (const unit of units) {
             try {
               const scopeFlag = scope === 'user' ? '--user ' : '';
               const out = execSync(`journalctl ${scopeFlag}-u ${unit} --no-pager -n ${lines} -o short 2>/dev/null`, { encoding: 'utf8', timeout: 10000 });
               if (out && out.trim() && !out.includes('-- No entries --')) {
-                logs = out;
-                source = `${scope}:${unit}`;
-                break;
+                const linesArray = out.split('\n').filter(l => l.trim());
+                // Get last timestamp for sorting (newest source first)
+                const lastTimestamp = linesArray[linesArray.length - 1]?.substring(0, 15) || '';
+                sourceLogs.push({
+                  scope,
+                  unit,
+                  logs: out,
+                  lastTimestamp,
+                  lineCount: linesArray.length
+                });
               }
             } catch {}
           }
-          if (logs) break;
         }
-        if (!logs) {
+        
+        let logs = '';
+        if (sourceLogs.length === 0) {
           logs = `No logs available for "${service}". Tried units: ${units.join(', ')} in system + user journal.`;
+        } else if (sourceLogs.length === 1) {
+          // Single source
+          logs = `[source ${sourceLogs[0].scope}:${sourceLogs[0].unit}]\n${sourceLogs[0].logs}`;
         } else {
-          logs = `[source ${source}]\n${logs}`;
+          // Multiple sources - sort by recency (oldest first, newest last)
+          sourceLogs.sort((a, b) => a.lastTimestamp.localeCompare(b.lastTimestamp));
+          
+          // Show each source as separate block
+          logs = `${sourceLogs.length} log sources found (chronological by latest entry):\n`;
+          for (const entry of sourceLogs) {
+            logs += `\n═══════════════════════════════════════════════════════════\n`;
+            logs += `[source ${entry.scope}:${entry.unit}] (${entry.lineCount} lines, latest: ${entry.lastTimestamp})\n`;
+            logs += `═══════════════════════════════════════════════════════════\n`;
+            logs += entry.logs;
+            if (!entry.logs.endsWith('\n')) logs += '\n';
+          }
         }
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end(logs);
@@ -2062,7 +2099,18 @@ const server = http.createServer((req, res) => {
     if (req.url === '/api/action/restart-openclaw' && req.method === 'POST') {
       try {
         auditLog('action_restart_openclaw', ip);
-        exec('systemctl restart openclaw', (err) => {});
+        // Try system scope first, then user scope
+        exec('systemctl restart openclaw', (err) => {
+          if (err) {
+            // System scope failed, try user scope
+            exec('systemctl --user restart openclaw', (err2) => {
+              if (err2) {
+                // Also try openclaw-gateway (common user service name)
+                exec('systemctl --user restart openclaw-gateway', (err3) => {});
+              }
+            });
+          }
+        });
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
       } catch (e) {
