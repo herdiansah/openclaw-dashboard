@@ -759,6 +759,11 @@ function getCostData() {
       if (d >= weekAgo) weekCost += c;
     }
 
+    // Ensure every configured OpenClaw model is visible in costs.perModel (zero-cost if unused).
+    for (const modelKey of collectConfiguredModels()) {
+      if (perModel[modelKey] === undefined) perModel[modelKey] = 0;
+    }
+
     return {
       total: Math.round(total * 100) / 100,
       today: Math.round((perDay[todayKey] || 0) * 100) / 100,
@@ -1562,6 +1567,105 @@ function getTodayTokens() {
   } catch { return { totalInput: 0, totalOutput: 0, perModel: {} }; }
 }
 
+function collectConfiguredModels() {
+  const configured = new Set();
+  try {
+    if (!fs.existsSync(OPENCLAW_CONFIG_PATH)) return configured;
+    const cfg = JSON.parse(fs.readFileSync(OPENCLAW_CONFIG_PATH, 'utf8'));
+
+    const providers = cfg?.models?.providers;
+    if (providers && typeof providers === 'object') {
+      for (const [providerName, providerCfg] of Object.entries(providers)) {
+        const modelList = Array.isArray(providerCfg?.models) ? providerCfg.models : [];
+        for (const entry of modelList) {
+          if (!entry || typeof entry !== 'object') continue;
+          const id = String(entry.id || '').trim();
+          if (!id) continue;
+          configured.add(`${providerName}/${id}`);
+        }
+      }
+    }
+
+    const defaultModel = cfg?.agents?.defaults?.model;
+    const primary = String(defaultModel?.primary || '').trim();
+    if (primary) configured.add(primary);
+    const fallbacks = Array.isArray(defaultModel?.fallbacks) ? defaultModel.fallbacks : [];
+    for (const fb of fallbacks) {
+      const model = String(fb || '').trim();
+      if (model) configured.add(model);
+    }
+  } catch {}
+  return configured;
+}
+
+let sessionsModelUsageCache = null;
+let sessionsModelUsageCacheTime = 0;
+
+function getSessionsModelUsage() {
+  const now = Date.now();
+  if (sessionsModelUsageCache && now - sessionsModelUsageCacheTime < 60000) {
+    return sessionsModelUsageCache;
+  }
+
+  const usage = {};
+  const configuredModels = collectConfiguredModels();
+
+  const ensure = (model) => {
+    const key = String(model || '').trim();
+    if (!key) return null;
+    if (!usage[key]) usage[key] = { input: 0, output: 0, total: 0, messages: 0, configured: configuredModels.has(key), used: false };
+    return usage[key];
+  };
+
+  for (const model of configuredModels) ensure(model);
+
+  try {
+    const files = fs.readdirSync(sessDir).filter(f => isSessionFile(f));
+    for (const file of files) {
+      const lines = fs.readFileSync(path.join(sessDir, file), 'utf8').split('\n');
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const d = JSON.parse(line);
+          if (d.type !== 'message') continue;
+          const msg = d.message;
+          if (!msg || !msg.usage) continue;
+          const provider = normalizeProvider(msg.provider);
+          const model = normalizeModel(provider, msg.model);
+          if (!model || model.includes('delivery-mirror')) continue;
+          const modelKey = `${provider}/${model}`;
+          const item = ensure(modelKey);
+          if (!item) continue;
+          const inTok = Math.max(0, toNum(msg.usage.input)) + Math.max(0, toNum(msg.usage.cacheRead)) + Math.max(0, toNum(msg.usage.cacheWrite));
+          const outTok = Math.max(0, toNum(msg.usage.output));
+          item.input += inTok;
+          item.output += outTok;
+          item.total += inTok + outTok;
+          item.messages += 1;
+          item.used = true;
+        } catch {}
+      }
+    }
+  } catch {}
+
+  const rows = Object.entries(usage)
+    .map(([model, data]) => ({ model, ...data }))
+    .sort((a, b) => {
+      if (b.total !== a.total) return b.total - a.total;
+      if (a.configured !== b.configured) return a.configured ? -1 : 1;
+      return a.model.localeCompare(b.model);
+    });
+
+  sessionsModelUsageCache = {
+    generatedAt: Date.now(),
+    totalModelsConfigured: configuredModels.size,
+    totalModelsSeen: rows.filter(r => r.used).length,
+    models: rows
+  };
+  sessionsModelUsageCacheTime = now;
+  return sessionsModelUsageCache;
+}
+
 function getAvgResponseTime() {
   try {
     const files = fs.readdirSync(sessDir).filter(f => isSessionFile(f));
@@ -2141,6 +2245,11 @@ const server = http.createServer((req, res) => {
     if (req.url === '/api/tokens-today') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(getTodayTokens()));
+      return;
+    }
+    if (req.url === '/api/sessions-model-usage') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(getSessionsModelUsage()));
       return;
     }
     if (req.url === '/api/config') {

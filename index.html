@@ -164,6 +164,36 @@ body {
   overflow-x: hidden;
 }
 
+.mobile-menu-btn {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  z-index: 220;
+  cursor: pointer;
+}
+
+.mobile-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  z-index: 200;
+}
+
+.mobile-sidebar-overlay.active {
+  display: block;
+}
+
 .page {
   display: none;
   animation: fadeIn 0.3s ease;
@@ -220,6 +250,113 @@ body {
   margin-bottom: 20px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  margin-right: 28px;
+}
+
+.layout-draggable-card {
+  position: relative;
+}
+
+.layout-draggable-card.dragging {
+  opacity: 0.55;
+  border-style: dashed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.layout-draggable-card.drop-highlight {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 0 20px rgba(99, 102, 241, 0.2);
+}
+
+.layout-drag-handle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: grab;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+.layout-drag-handle:active {
+  cursor: grabbing;
+}
+
+.layout-reset-btn {
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.layout-reset-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.layout-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  align-items: center;
+}
+
+.layout-saved-indicator {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dashboard-settings-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  padding: 16px;
+}
+
+.dashboard-settings-panel {
+  width: min(560px, 100%);
+  max-height: 80vh;
+  overflow: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.dashboard-settings-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.dashboard-settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  font-size: 13px;
 }
 
 .grid {
@@ -896,50 +1033,68 @@ body {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
-  .sidebar {
-    width: 100vw;
-    height: auto;
-    bottom: 0;
-    top: auto;
-    left: 0;
-    right: 0;
-    border-right: none;
-    border-top: 1px solid var(--border);
-    flex-direction: row;
-    padding: 0;
-    z-index: 150;
+  body.mobile-menu-open {
+    overflow: hidden;
   }
-  .sidebar:hover {
-    width: 100vw;
+  .mobile-menu-btn {
+    display: inline-flex;
   }
-  .sidebar-header {
+  .mobile-sidebar-overlay {
     display: none;
   }
-  .nav {
-    flex-direction: row;
+  .sidebar {
+    width: 280px;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    border-right: 1px solid var(--border);
+    border-top: none;
+    flex-direction: column;
     padding: 0;
-    overflow-x: auto;
+    z-index: 210;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+  .sidebar:hover {
+    width: 280px;
+  }
+  .sidebar-header {
+    display: flex;
+  }
+  .nav {
+    flex-direction: column;
+    padding: 12px 8px;
+    overflow-y: auto;
     width: 100%;
-    justify-content: space-around;
+    justify-content: flex-start;
   }
   .nav-item {
-    flex-direction: column;
-    padding: 8px 12px;
-    margin: 0;
-    gap: 4px;
-    min-width: 60px;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 12px 14px;
+    margin: 0 0 6px;
+    gap: 10px;
+    min-width: unset;
   }
   .nav-item .icon {
-    font-size: 20px;
+    font-size: 18px;
   }
   .nav-text {
+    display: inline;
     opacity: 1;
-    font-size: 10px;
+    font-size: 13px;
+  }
+  .brand {
+    opacity: 1;
   }
   .main {
     margin-left: 0;
-    margin-bottom: 80px;
+    margin-bottom: 40px;
     padding: 16px;
+    padding-top: 62px;
   }
   .page-title {
     font-size: 24px;
@@ -964,7 +1119,7 @@ body {
     font-size: 10px;
     padding: 0 12px;
     height: 32px;
-    bottom: 52px;
+    bottom: 0;
   }
   .status-bar-section {
     gap: 8px;
@@ -1242,6 +1397,8 @@ body {
 </div>
 
 <div class="app" id="mainApp" style="display:none;">
+  <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()" aria-label="Toggle menu">☰</button>
+  <div class="mobile-sidebar-overlay" id="mobileSidebarOverlay" onclick="closeMobileSidebar()"></div>
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="logo">✨</div>
@@ -1300,6 +1457,12 @@ body {
       <div class="page-header">
         <h1 class="page-title">Overview</h1>
         <p class="page-subtitle">Agent activity and system performance</p>
+        <div class="layout-actions">
+          <button class="layout-reset-btn" onclick="openDashboardSettings()">Dashboard Settings</button>
+          <button class="layout-reset-btn" id="saveOverviewLayoutBtn" onclick="saveOverviewLayoutManual()">Save Layout</button>
+          <button class="layout-reset-btn" onclick="resetOverviewLayout()">Reset Card Layout</button>
+          <span class="layout-saved-indicator" id="overviewLayoutSavedAt">Last saved: never</span>
+        </div>
       </div>
 
       <div class="grid mb-24" style="grid-template-columns: repeat(3, 1fr);">
@@ -1508,15 +1671,9 @@ body {
           <div class="activity-feed" id="recentActivity" style="max-height:400px;overflow-y:auto;"></div>
           <a href="#" class="view-all-link" data-page="sessions">View All Sessions →</a>
         </div>
-        <div>
-          <div class="card mb-24">
-            <h3 class="card-title">Daily Spend (Last 7 Days)</h3>
-            <div class="bar-chart" id="dailySpendChart"></div>
-          </div>
-          <div class="card">
-            <h3 class="card-title">Memory Files</h3>
-            <div id="memoryFiles"></div>
-          </div>
+        <div class="card">
+          <h3 class="card-title">Daily Spend (Last 7 Days)</h3>
+          <div class="bar-chart" id="dailySpendChart"></div>
         </div>
       </div>
 
@@ -1565,6 +1722,12 @@ body {
         <div id="timelineCanvas" style="min-height:60px;"></div>
       </div>
 
+      <div class="card mb-24">
+        <h3 class="card-title">Token Usage by Configured Models</h3>
+        <div id="sessionsModelUsageMeta" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Loading model usage...</div>
+        <div id="sessionsModelUsageChart" style="display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto;"></div>
+      </div>
+
 
       <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:20px;padding:16px 20px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;">
         <div class="filter-chips" id="statusFilters">
@@ -1576,11 +1739,11 @@ body {
           <div class="chip" data-filter="group">Groups</div>
         </div>
         <div style="width:1px;height:24px;background:var(--border);"></div>
-        <div class="filter-chips" id="modelFilters">
-          <div class="chip active" data-model="all">All Models</div>
-          <div class="chip" data-model="opus-4-6">Opus</div>
-          <div class="chip" data-model="sonnet">Sonnet</div>
-          <div class="chip" data-model="gemini">Gemini</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Model</span>
+          <select id="sessionsModelSelect" style="background:var(--bg-primary);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;font-family:'JetBrains Mono',monospace;cursor:pointer;outline:none;min-width:220px;">
+            <option value="all">All Models</option>
+          </select>
         </div>
         <div style="width:1px;height:24px;background:var(--border);"></div>
         <div class="filter-chips" id="dateFilters">
@@ -2058,6 +2221,23 @@ body {
   </div>
 </div>
 
+<div class="dashboard-settings-modal" id="dashboardSettingsModal" onclick="if(event.target===this)closeDashboardSettings()">
+  <div class="dashboard-settings-panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+      <div>
+        <div style="font-size:16px;font-weight:700;">Dashboard Settings</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Show or hide overview cards</div>
+      </div>
+      <button class="layout-reset-btn" onclick="closeDashboardSettings()">Close</button>
+    </div>
+    <div class="layout-actions">
+      <button class="layout-reset-btn" onclick="setAllOverviewCardsVisibility(true)">Show All</button>
+      <button class="layout-reset-btn" onclick="setAllOverviewCardsVisibility(false)">Hide All</button>
+    </div>
+    <div class="dashboard-settings-list" id="dashboardSettingsList"></div>
+  </div>
+</div>
+
 <script>
 function getApiBasePath() {
   var pathname = window.location.pathname;
@@ -2192,6 +2372,8 @@ if (typeof document !== 'undefined') {
         }
       });
     }
+    initOverviewLayoutDnD();
+    initOverviewCardVisibility();
   });
 }
 
@@ -2449,6 +2631,8 @@ async function handleLogout() {
 function showApp() {
   document.getElementById('loginPage').style.display = 'none';
   document.getElementById('mainApp').style.display = 'flex';
+  try { applyOverviewLayout(); } catch {}
+  try { applyOverviewCardVisibility(readOverviewVisibilityState()); } catch {}
   fetchData();
   fetchNewData();
   fetchHealthHistory();
@@ -2989,16 +3173,347 @@ let sessions = [];
 let costs = {};
 let usage = {};
 let systemStats = {};
+let sessionsModelUsageData = null;
 let feedPaused = true;
 let liveEventSource = null;
 let sortBy = 'updated';
 let sortDir = 'desc';
 let selectedSessions = new Set();
 let notificationsEnabled = false;
+const OVERVIEW_LAYOUT_KEY = 'overviewLayout.v1';
+const OVERVIEW_LAYOUT_SAVED_AT_KEY = 'overviewLayoutSavedAt.v1';
+const OVERVIEW_VISIBILITY_KEY = 'overviewCardVisibility.v1';
+let overviewDragSource = null;
+
+function makeLayoutCardId(card, fallbackIndex) {
+  if (card.dataset.layoutCardId) return card.dataset.layoutCardId;
+  if (card.id) return `id:${card.id}`;
+  const title = card.querySelector('.card-title')?.textContent?.trim()?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || '';
+  if (title) return `title:${title}`;
+  return `card:${fallbackIndex}`;
+}
+
+function getOverviewContainers() {
+  const overview = document.getElementById('overview');
+  if (!overview) return [];
+  return Array.from(overview.querySelectorAll('.grid')).filter(container =>
+    container.querySelectorAll(':scope > .card').length > 1
+  );
+}
+
+function saveOverviewLayout() {
+  const layout = {};
+  getOverviewContainers().forEach((container, idx) => {
+    const cid = container.dataset.layoutContainerId || `overview-grid-${idx}`;
+    const order = Array.from(container.querySelectorAll(':scope > .layout-draggable-card'))
+      .map(card => card.dataset.layoutCardId)
+      .filter(Boolean);
+    if (order.length > 1) layout[cid] = order;
+  });
+  localStorage.setItem(OVERVIEW_LAYOUT_KEY, JSON.stringify(layout));
+  localStorage.setItem(OVERVIEW_LAYOUT_SAVED_AT_KEY, String(Date.now()));
+  renderOverviewLayoutSavedAt();
+}
+
+function renderOverviewLayoutSavedAt() {
+  const el = document.getElementById('overviewLayoutSavedAt');
+  if (!el) return;
+  const raw = localStorage.getItem(OVERVIEW_LAYOUT_SAVED_AT_KEY);
+  const savedAt = Number(raw || 0);
+  if (!Number.isFinite(savedAt) || savedAt <= 0) {
+    el.textContent = 'Last saved: never';
+    return;
+  }
+  const dt = new Date(savedAt);
+  const now = new Date();
+  const sameDate = dt.toDateString() === now.toDateString();
+  const timeText = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  if (sameDate) {
+    el.textContent = `Last saved: ${timeText}`;
+    return;
+  }
+  const dateTimeText = dt.toLocaleString([], {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  el.textContent = `Last saved: ${dateTimeText}`;
+}
+
+window.saveOverviewLayoutManual = function saveOverviewLayoutManual() {
+  saveOverviewLayout();
+  const btn = document.getElementById('saveOverviewLayoutBtn');
+  if (!btn) return;
+  const originalText = btn.dataset.originalText || btn.textContent || 'Save Layout';
+  btn.dataset.originalText = originalText;
+  btn.textContent = 'Saved';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }, 1200);
+};
+
+function applyOverviewLayout() {
+  const raw = localStorage.getItem(OVERVIEW_LAYOUT_KEY);
+  if (!raw) return;
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch { return; }
+  if (!parsed || typeof parsed !== 'object') return;
+
+  getOverviewContainers().forEach((container, idx) => {
+    const cid = container.dataset.layoutContainerId || `overview-grid-${idx}`;
+    const desired = Array.isArray(parsed[cid]) ? parsed[cid] : null;
+    if (!desired || !desired.length) return;
+    const cards = Array.from(container.querySelectorAll(':scope > .layout-draggable-card'));
+    const map = new Map(cards.map(card => [card.dataset.layoutCardId, card]));
+    desired.forEach(cardId => {
+      const card = map.get(cardId);
+      if (card) container.appendChild(card);
+    });
+  });
+}
+
+function clearOverviewDropHighlights() {
+  document.querySelectorAll('#overview .layout-draggable-card.drop-highlight').forEach(card => {
+    card.classList.remove('drop-highlight');
+  });
+}
+
+function findClosestCard(container, clientX, clientY) {
+  const cards = Array.from(container.querySelectorAll(':scope > .layout-draggable-card:not(.dragging)'));
+  if (!cards.length) return null;
+  let closest = null;
+  let minDistance = Number.POSITIVE_INFINITY;
+  for (const card of cards) {
+    const rect = card.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dist = (cx - clientX) ** 2 + (cy - clientY) ** 2;
+    if (dist < minDistance) {
+      minDistance = dist;
+      closest = card;
+    }
+  }
+  return closest;
+}
+
+function initOverviewLayoutDnD() {
+  getOverviewContainers().forEach((container, containerIndex) => {
+    container.dataset.layoutContainerId = container.dataset.layoutContainerId || `overview-grid-${containerIndex}`;
+    const cards = Array.from(container.querySelectorAll(':scope > .card'));
+
+    cards.forEach((card, cardIndex) => {
+      card.classList.add('layout-draggable-card');
+      card.dataset.layoutCardId = makeLayoutCardId(card, cardIndex);
+      card.setAttribute('draggable', 'true');
+
+      if (!card.querySelector(':scope > .layout-drag-handle')) {
+        const handle = document.createElement('button');
+        handle.type = 'button';
+        handle.className = 'layout-drag-handle';
+        handle.title = 'Drag to reorder';
+        handle.setAttribute('aria-label', 'Drag card');
+        handle.textContent = '⋮⋮';
+        handle.draggable = true;
+        card.appendChild(handle);
+      }
+
+      card.addEventListener('dragstart', (e) => {
+        const onHandle = !!(e.target && e.target.closest && e.target.closest('.layout-drag-handle'));
+        if (!onHandle) {
+          e.preventDefault();
+          return;
+        }
+        overviewDragSource = card;
+        card.classList.add('dragging');
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', card.dataset.layoutCardId || '');
+        }
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        clearOverviewDropHighlights();
+        overviewDragSource = null;
+        saveOverviewLayout();
+      });
+    });
+
+    container.addEventListener('dragover', (e) => {
+      if (!overviewDragSource) return;
+      e.preventDefault();
+      const closest = findClosestCard(container, e.clientX, e.clientY);
+      clearOverviewDropHighlights();
+      if (!closest || closest === overviewDragSource) return;
+      closest.classList.add('drop-highlight');
+      const rect = closest.getBoundingClientRect();
+      const before = e.clientY < rect.top + rect.height / 2;
+      if (before) container.insertBefore(overviewDragSource, closest);
+      else container.insertBefore(overviewDragSource, closest.nextSibling);
+    });
+
+    container.addEventListener('drop', (e) => {
+      if (!overviewDragSource) return;
+      e.preventDefault();
+      clearOverviewDropHighlights();
+      saveOverviewLayout();
+    });
+  });
+
+  applyOverviewLayout();
+  renderOverviewLayoutSavedAt();
+}
+
+window.resetOverviewLayout = function resetOverviewLayout() {
+  localStorage.removeItem(OVERVIEW_LAYOUT_KEY);
+  localStorage.removeItem(OVERVIEW_LAYOUT_SAVED_AT_KEY);
+  location.reload();
+};
+
+function closeMobileSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('mobileSidebarOverlay');
+  if (sidebar) sidebar.classList.remove('mobile-open');
+  if (overlay) overlay.classList.remove('active');
+  document.body.classList.remove('mobile-menu-open');
+}
+
+function openMobileSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('mobileSidebarOverlay');
+  if (sidebar) sidebar.classList.add('mobile-open');
+  if (overlay) overlay.classList.add('active');
+  document.body.classList.add('mobile-menu-open');
+}
+
+function toggleMobileSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
+  if (sidebar.classList.contains('mobile-open')) closeMobileSidebar();
+  else openMobileSidebar();
+}
+
+function getOverviewCards() {
+  const overview = document.getElementById('overview');
+  if (!overview) return [];
+  return Array.from(overview.querySelectorAll('.card'));
+}
+
+function readOverviewVisibilityState() {
+  try {
+    const raw = localStorage.getItem(OVERVIEW_VISIBILITY_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeOverviewVisibilityState(state) {
+  localStorage.setItem(OVERVIEW_VISIBILITY_KEY, JSON.stringify(state || {}));
+}
+
+function syncOverviewWrapperVisibility() {
+  const overview = document.getElementById('overview');
+  if (!overview) return;
+  const wrappers = Array.from(overview.querySelectorAll('.grid > div:not(.card)'));
+  wrappers.forEach(wrapper => {
+    const cards = Array.from(wrapper.querySelectorAll(':scope > .card'));
+    if (!cards.length) return;
+    const visible = cards.some(card => card.style.display !== 'none');
+    wrapper.style.display = visible ? '' : 'none';
+  });
+}
+
+function applyOverviewCardVisibility(state) {
+  const cards = getOverviewCards();
+  cards.forEach((card, idx) => {
+    const id = card.dataset.overviewCardId || makeLayoutCardId(card, idx);
+    card.dataset.overviewCardId = id;
+    const hidden = !!state[id];
+    card.style.display = hidden ? 'none' : '';
+  });
+  syncOverviewWrapperVisibility();
+}
+
+function getOverviewCardLabel(card, idx) {
+  const title = card.querySelector('.card-title')?.textContent?.trim();
+  if (title) return title;
+  if (card.id) return card.id;
+  return `Card ${idx + 1}`;
+}
+
+function renderDashboardSettingsList() {
+  const el = document.getElementById('dashboardSettingsList');
+  if (!el) return;
+  const state = readOverviewVisibilityState();
+  const cards = getOverviewCards();
+  el.innerHTML = cards.map((card, idx) => {
+    const id = card.dataset.overviewCardId || makeLayoutCardId(card, idx);
+    card.dataset.overviewCardId = id;
+    const label = getOverviewCardLabel(card, idx).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const checked = state[id] ? '' : 'checked';
+    return `<label class="dashboard-settings-item">
+      <span>${label}</span>
+      <input type="checkbox" ${checked} onchange="toggleOverviewCardVisibility('${id.replace(/'/g, "\\'")}', this.checked)">
+    </label>`;
+  }).join('') || '<div style="color:var(--text-muted);font-size:12px;">No cards found</div>';
+}
+
+window.openDashboardSettings = function openDashboardSettings() {
+  renderDashboardSettingsList();
+  const modal = document.getElementById('dashboardSettingsModal');
+  if (modal) modal.style.display = 'flex';
+};
+
+window.closeDashboardSettings = function closeDashboardSettings() {
+  const modal = document.getElementById('dashboardSettingsModal');
+  if (modal) modal.style.display = 'none';
+};
+
+window.toggleOverviewCardVisibility = function toggleOverviewCardVisibility(cardId, visible) {
+  const state = readOverviewVisibilityState();
+  if (visible) delete state[cardId];
+  else state[cardId] = true;
+  writeOverviewVisibilityState(state);
+  applyOverviewCardVisibility(state);
+};
+
+window.setAllOverviewCardsVisibility = function setAllOverviewCardsVisibility(visible) {
+  const state = readOverviewVisibilityState();
+  getOverviewCards().forEach((card, idx) => {
+    const id = card.dataset.overviewCardId || makeLayoutCardId(card, idx);
+    card.dataset.overviewCardId = id;
+    if (visible) delete state[id];
+    else state[id] = true;
+  });
+  writeOverviewVisibilityState(state);
+  applyOverviewCardVisibility(state);
+  renderDashboardSettingsList();
+};
+
+function initOverviewCardVisibility() {
+  const cards = getOverviewCards();
+  cards.forEach((card, idx) => {
+    if (!card.dataset.overviewCardId) {
+      card.dataset.overviewCardId = makeLayoutCardId(card, idx);
+    }
+  });
+  applyOverviewCardVisibility(readOverviewVisibilityState());
+}
 
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => {
     const page = item.dataset.page;
+    if (!page) {
+      if (window.innerWidth <= 768) closeMobileSidebar();
+      return;
+    }
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     item.classList.add('active');
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -3016,6 +3531,9 @@ document.querySelectorAll('.nav-item').forEach(item => {
     }
     if (page === 'files') {
       fetchKeyFiles();
+    }
+    if (window.innerWidth <= 768) {
+      closeMobileSidebar();
     }
   });
 });
@@ -3042,6 +3560,12 @@ async function fetchData() {
     systemStats = await sysRes.json();
     
     updateDashboard();
+
+    authFetch(API_BASE + '/api/sessions-model-usage').then(r => r.json()).then(data => {
+      sessionsModelUsageData = data;
+      try { renderSessionsModelUsage(data); } catch {}
+      try { updateSessionsModelDropdown(); } catch {}
+    }).catch(() => {});
     
     // Then load usage async (slower endpoint)
     authFetch(API_BASE + '/api/usage').then(r => r.json()).then(u => {
@@ -3051,6 +3575,44 @@ async function fetchData() {
   } catch (err) {
     console.error('Fetch error:', err);
   }
+}
+
+function renderSessionsModelUsage(data) {
+  const chartEl = document.getElementById('sessionsModelUsageChart');
+  const metaEl = document.getElementById('sessionsModelUsageMeta');
+  if (!chartEl || !metaEl) return;
+  if (!data || !Array.isArray(data.models)) {
+    metaEl.textContent = 'No model usage data available';
+    chartEl.innerHTML = '<div class="empty-state-text">No data</div>';
+    return;
+  }
+
+  const rows = data.models;
+  const maxTotal = Math.max(1, ...rows.map(r => Number(r.total || 0)));
+  metaEl.textContent = `${rows.length} models · configured: ${data.totalModelsConfigured || 0} · used: ${data.totalModelsSeen || 0}`;
+
+  chartEl.innerHTML = rows.map((row) => {
+    const total = Number(row.total || 0);
+    const width = Math.max(2, (total / maxTotal) * 100);
+    const color = row.used ? 'var(--accent)' : 'var(--border)';
+    const badge = row.configured ? '<span style="font-size:10px;color:var(--green);border:1px solid rgba(16,185,129,0.35);padding:1px 6px;border-radius:999px;">configured</span>' : '';
+    return `<div style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary);">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
+        <span class="mono" style="font-size:11px;word-break:break-all;">${row.model}</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          ${badge}
+          <span class="mono" style="font-size:11px;color:var(--text-muted);">${total.toLocaleString()} tok</span>
+        </div>
+      </div>
+      <div style="height:8px;background:var(--bg-tertiary);border-radius:6px;overflow:hidden;">
+        <div style="height:100%;width:${width}%;background:${color};border-radius:6px;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:5px;">
+        <span>in ${(Number(row.input || 0)).toLocaleString()}</span>
+        <span>out ${(Number(row.output || 0)).toLocaleString()}</span>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty-state-text">No data</div>';
 }
 
 function animateValue(elem, end) {
@@ -3097,6 +3659,7 @@ function updateRadialGauge(circleId, percent) {
 
 function updateDashboard() {
   try { updateOverview(); } catch(e) { console.error('Overview error:', e); }
+  try { updateSessionsModelDropdown(); } catch(e) { console.error('Session model dropdown error:', e); }
   try { updateSessions(); } catch(e) { console.error('Sessions error:', e); }
   try { updateLimits(); } catch(e) { console.error('Limits error:', e); }
   try { updateCosts(); } catch(e) { console.error('Costs error:', e); }
@@ -3313,14 +3876,13 @@ document.querySelectorAll('#statusFilters .chip').forEach(chip => {
   });
 });
 
-document.querySelectorAll('#modelFilters .chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    document.querySelectorAll('#modelFilters .chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    modelFilter = chip.dataset.model;
+const sessionsModelSelectEl = document.getElementById('sessionsModelSelect');
+if (sessionsModelSelectEl) {
+  sessionsModelSelectEl.addEventListener('change', (e) => {
+    modelFilter = String(e.target.value || 'all').toLowerCase();
     updateSessions();
   });
-});
+}
 
 document.querySelectorAll('#dateFilters .chip').forEach(chip => {
   chip.addEventListener('click', () => {
@@ -3377,13 +3939,7 @@ function getFilteredSessions() {
   }
 
   if (modelFilter !== 'all') {
-    filtered = filtered.filter(s => {
-      const m = s.model.toLowerCase();
-      if (modelFilter === 'opus-4-6') return m.includes('opus');
-      if (modelFilter === 'sonnet') return m.includes('sonnet');
-      if (modelFilter === 'gemini') return m.includes('gemini');
-      return true;
-    });
+    filtered = filtered.filter(s => String(s.model || '').toLowerCase() === modelFilter);
   }
 
   if (sessionSearch) {
@@ -3395,6 +3951,28 @@ function getFilteredSessions() {
   }
 
   return filtered;
+}
+
+function updateSessionsModelDropdown() {
+  const el = document.getElementById('sessionsModelSelect');
+  if (!el) return;
+  const prev = modelFilter || 'all';
+  let models = [];
+  if (sessionsModelUsageData && Array.isArray(sessionsModelUsageData.models) && sessionsModelUsageData.models.length) {
+    models = sessionsModelUsageData.models
+      .map(row => String(row.model || '').trim())
+      .filter(Boolean);
+  } else {
+    models = Array.from(new Set(sessions.map(s => String(s.model || '').trim()).filter(Boolean)));
+  }
+  models = Array.from(new Set(models)).sort((a, b) => a.localeCompare(b));
+  const options = ['<option value="all">All Models</option>']
+    .concat(models.map(m => `<option value="${m.toLowerCase().replace(/"/g, '&quot;')}">${m.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</option>`));
+  el.innerHTML = options.join('');
+
+  const exists = models.some(m => m.toLowerCase() === prev);
+  el.value = exists ? prev : 'all';
+  modelFilter = el.value;
 }
 
 function getModelColor(model) {
@@ -4067,7 +4645,10 @@ function updateCosts() {
       const shortModel = model.split('/').pop();
       return `
         <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);">
-          <span class="mono">${shortModel}</span>
+          <span style="display:flex;flex-direction:column;gap:2px;">
+            <span class="mono" style="font-size:12px;">${model}</span>
+            <span style="font-size:10px;color:var(--text-muted);">${shortModel}</span>
+          </span>
           <span class="mono" style="font-weight:700;">$${cost.toFixed(2)}</span>
         </div>
       `;
@@ -4339,11 +4920,10 @@ function renderIntegrationsStatus(data) {
 
 async function fetchNewData() {
   try {
-    const [cronsRes, gitRes, svcRes, memRes, tokRes, rtRes, intRes] = await Promise.all([
+    const [cronsRes, gitRes, svcRes, tokRes, rtRes, intRes] = await Promise.all([
       authFetch(API_BASE + '/api/crons'),
       authFetch(API_BASE + '/api/git'),
       authFetch(API_BASE + '/api/services'),
-      authFetch(API_BASE + '/api/memory'),
       authFetch(API_BASE + '/api/tokens-today'),
       authFetch(API_BASE + '/api/response-time'),
       authFetch(API_BASE + '/api/integrations')
@@ -4351,7 +4931,6 @@ async function fetchNewData() {
     const crons = await cronsRes.json();
     const git = await gitRes.json();
     const services = await svcRes.json();
-    const memFiles = await memRes.json();
     const tokens = await tokRes.json();
     const rt = await rtRes.json();
     const integrations = await intRes.json();
@@ -4411,15 +4990,6 @@ window.runCronJob = async function(id) {
         <span style="flex-shrink:0;color:var(--text-muted);">${ago}</span>
       </div>`;
     }).join('') || '<div class="empty-state-text">No recent commits</div>';
-
-    document.getElementById('memoryFiles').innerHTML = memFiles.map(f => {
-      const age = now - f.modified;
-      const ago = age < 60000 ? 'just now' : age < 3600000 ? Math.round(age/60000)+'m ago' : age < 86400000 ? Math.round(age/3600000)+'h ago' : Math.round(age/86400000)+'d ago';
-      return `<div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
-        <span class="mono" style="font-size:13px;">📄 ${f.name}</span>
-        <span style="font-size:12px;color:var(--text-muted);">${ago}</span>
-      </div>`;
-    }).join('') || '<div class="empty-state-text">No files</div>';
 
     const inK = (tokens.totalInput / 1000).toFixed(0) + 'k';
     const outK = (tokens.totalOutput / 1000).toFixed(0) + 'k';
@@ -4683,6 +5253,7 @@ document.addEventListener('keydown', (e) => {
   } else if (e.key === 'Escape') {
     closeSessionModal();
     toggleShortcuts(false);
+    closeMobileSidebar();
   } else if (e.key === '/') {
     e.preventDefault();
     const activePage = document.querySelector('.page.active').id;
@@ -4695,6 +5266,10 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     toggleShortcuts();
   }
+});
+
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 768) closeMobileSidebar();
 });
 
 function toggleShortcuts(force) {
