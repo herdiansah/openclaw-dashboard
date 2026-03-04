@@ -30,6 +30,8 @@ A beautiful, secure, real-time monitoring dashboard for OpenClaw agents. Track s
 - 📁 **Files Manager** - View and edit workspace files, skills, and configs with security hardening
 - 📈 **System Health** - CPU, RAM, disk, temperature monitoring with sparklines
 - 🔄 **Service Control** - Quick actions to restart OpenClaw, dashboard, or other services
+- 🧩 **Memory Sidecar Integration** - Monitor vector memory + Qdrant sidecar status from the dashboard
+- 🧬 **TONL Token Optimization Visibility** - Check TONL plugin registration, load-path, and recent token savings metadata
 - 📋 **Log Viewer** - Real-time system logs with auto-refresh
 - ⏰ **Cron Management** - View, enable/disable, and manually trigger cron jobs
 - 🌐 **Tailscale Integration** - View Tailscale status, IP, and connected peers
@@ -50,6 +52,7 @@ A beautiful, secure, real-time monitoring dashboard for OpenClaw agents. Track s
 - 🌟 **Lifetime Stats** - Total tokens, messages, cost since first session
 - 📈 **Health History** - 24-hour CPU & RAM sparklines
 - 🎯 **Quick Actions** - One-click system maintenance (updates, cleanup, restarts)
+- ▶️ **Integration Script Actions** - Execute vector-memory and TONL validation scripts directly from UI
 - 🍎 **macOS Compatible** - Full support for macOS system stats, services, and memory reporting
 - 🔐 **Username/Password Auth** - Secure registration with PBKDF2 password hashing
 - 🔑 **TOTP MFA** - Optional two-factor authentication (Google Authenticator compatible)
@@ -141,6 +144,10 @@ journalctl -u agent-dashboard -f
 | `WORKSPACE_DIR` | OpenClaw workspace path | `$OPENCLAW_WORKSPACE` or current directory |
 | `OPENCLAW_DIR` | OpenClaw config directory | `~/.openclaw` |
 | `OPENCLAW_AGENT` | Agent ID to monitor | `main` |
+| `OPENCLAW_REPO_DIR` | OpenClaw source repo path (for `extensions/` and `scripts/`) | `$WORKSPACE_DIR/openclaw` if exists, else `$WORKSPACE_DIR` |
+| `VECTOR_MEMORY_ENV` | Path to vector memory env file | `$WORKSPACE_DIR/config/vector-memory.env` |
+| `OPENCLAW_QDRANT_ENV_FILE` | Path to OpenClaw qdrant sidecar env file | `$OPENCLAW_REPO_DIR/qdrant-setup/qdrant-memory.env` |
+| `OPENCLAW_CONFIG_PATH` | Path to OpenClaw config JSON | `$OPENCLAW_DIR/openclaw.json` |
 | `DASHBOARD_ALLOW_HTTP` | Allow HTTP from non-local IPs | `false` |
 
 **Examples:**

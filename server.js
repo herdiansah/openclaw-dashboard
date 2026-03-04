@@ -2,7 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { exec } = require('child_process');
+const { exec, execSync } = require('child_process');
 const crypto = require('crypto');
 
 const PORT = parseInt(process.env.DASHBOARD_PORT || '7000');
@@ -15,6 +15,19 @@ const dataDir = path.join(WORKSPACE_DIR, 'data');
 const memoryDir = path.join(WORKSPACE_DIR, 'memory');
 const memoryMdPath = path.join(WORKSPACE_DIR, 'MEMORY.md');
 const heartbeatPath = path.join(WORKSPACE_DIR, 'HEARTBEAT.md');
+const OPENCLAW_REPO_DIR = process.env.OPENCLAW_REPO_DIR || (
+  fs.existsSync(path.join(WORKSPACE_DIR, 'openclaw'))
+    ? path.join(WORKSPACE_DIR, 'openclaw')
+    : WORKSPACE_DIR
+);
+const WORKSPACE_SCRIPTS_DIR = path.join(WORKSPACE_DIR, 'scripts');
+const OPENCLAW_SCRIPTS_DIR = path.join(OPENCLAW_REPO_DIR, 'scripts');
+const VECTOR_MEMORY_ENV_PATH = process.env.VECTOR_MEMORY_ENV || path.join(WORKSPACE_DIR, 'config', 'vector-memory.env');
+const QDRANT_MEMORY_ENV_PATH = process.env.OPENCLAW_QDRANT_ENV_FILE || path.join(OPENCLAW_REPO_DIR, 'qdrant-setup', 'qdrant-memory.env');
+const OPENCLAW_CONFIG_PATH = process.env.OPENCLAW_CONFIG_PATH || path.join(OPENCLAW_DIR, 'openclaw.json');
+const TONL_PLUGIN_ID = 'tonl-tool-result-persist';
+const TONL_PLUGIN_PATH = path.join(OPENCLAW_REPO_DIR, 'extensions', TONL_PLUGIN_ID, 'tonl-tool-result-persist.mjs');
+const TONL_PLUGIN_MANIFEST_PATH = path.join(OPENCLAW_REPO_DIR, 'extensions', TONL_PLUGIN_ID, 'openclaw.plugin.json');
 const healthHistoryFile = path.join(dataDir, 'health-history.json');
 const AUTH_DATA_DIR = process.env.DASHBOARD_AUTH_DIR || dataDir;
 const auditLogPath = path.join(AUTH_DATA_DIR, 'audit.log');
@@ -34,6 +47,168 @@ const geminiScrapeScript = path.join(WORKSPACE_DIR, 'scripts', 'scrape-gemini-us
 const pricingFile = path.join(WORKSPACE_DIR, 'data', 'model_pricing_usd_per_million.json');
 
 const htmlPath = path.join(__dirname, 'index.html');
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+function parseEnvFile(filePath) {
+  const out = {};
+  try {
+    if (!fs.existsSync(filePath)) return out;
+    const content = fs.readFileSync(filePath, 'utf8');
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const idx = trimmed.indexOf('=');
+      if (idx <= 0) continue;
+      const key = trimmed.slice(0, idx).trim();
+      let val = trimmed.slice(idx + 1).trim();
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1);
+      }
+      out[key] = val;
+    }
+  } catch {}
+  return out;
+}
+
+function toBool(value, fallback = false) {
+  if (value === undefined || value === null || value === '') return fallback;
+  return String(value).toLowerCase() === 'true';
+}
+
+function hasExecutable(filePath) {
+  try {
+    fs.accessSync(filePath, fs.constants.R_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function extractTonlRecentStats() {
+  try {
+    if (!fs.existsSync(sessDir)) return null;
+    const files = fs.readdirSync(sessDir)
+      .filter(f => isSessionFile(f))
+      .map(name => {
+        const full = path.join(sessDir, name);
+        let mtimeMs = 0;
+        try { mtimeMs = fs.statSync(full).mtimeMs; } catch {}
+        return { name, full, mtimeMs };
+      })
+      .sort((a, b) => b.mtimeMs - a.mtimeMs)
+      .slice(0, 6);
+
+    for (const file of files) {
+      const lines = fs.readFileSync(file.full, 'utf8').split('\n').filter(Boolean);
+      for (let i = lines.length - 1; i >= 0; i--) {
+        try {
+          const row = JSON.parse(lines[i]);
+          const tonl = row?.message?.tonl;
+          if (!tonl || !tonl.encoded) continue;
+          return {
+            sessionFile: file.name,
+            savedTokensEstimate: Number(tonl.savedTokensEstimate || 0),
+            originalTokensEstimate: Number(tonl.originalTokensEstimate || 0),
+            tonlTokensEstimate: Number(tonl.tonlTokensEstimate || 0),
+            originalChars: Number(tonl.originalChars || 0),
+            tonlChars: Number(tonl.tonlChars || 0)
+          };
+        } catch {}
+      }
+    }
+  } catch {}
+  return null;
+}
+
+function checkQdrantReachable(url) {
+  const safeUrl = String(url || '').trim();
+  if (!safeUrl) return false;
+  try {
+    const code = execSync(
+      `curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 --max-time 3 ${shellQuote(safeUrl + '/readyz')} 2>/dev/null || true`,
+      { encoding: 'utf8', timeout: 5000 }
+    ).trim();
+    return code === '200';
+  } catch {
+    return false;
+  }
+}
+
+function getIntegrationStatus() {
+  const vectorEnv = parseEnvFile(VECTOR_MEMORY_ENV_PATH);
+  const qdrantEnv = parseEnvFile(QDRANT_MEMORY_ENV_PATH);
+  const sidecarEnabled = toBool(vectorEnv.USE_VECTOR_MEMORY, false);
+  const qdrantSidecarEnabled = toBool(qdrantEnv.OPENCLAW_QDRANT_MEMORY_ENABLED, false);
+  const qdrantUrl = vectorEnv.QDRANT_URL || qdrantEnv.OPENCLAW_QDRANT_URL || 'http://127.0.0.1:6333';
+
+  let tonlConfigured = false;
+  let tonlLoadPathConfigured = false;
+  try {
+    if (fs.existsSync(OPENCLAW_CONFIG_PATH)) {
+      const cfg = JSON.parse(fs.readFileSync(OPENCLAW_CONFIG_PATH, 'utf8'));
+      const allow = cfg?.plugins?.allow;
+      const loadPaths = cfg?.plugins?.load?.paths;
+      tonlConfigured = Array.isArray(allow) && allow.includes(TONL_PLUGIN_ID);
+      tonlLoadPathConfigured = Array.isArray(loadPaths) && loadPaths.some(p => String(p).includes('tonl-tool-result-persist'));
+    }
+  } catch {}
+
+  return {
+    memorySidecar: {
+      enabled: sidecarEnabled,
+      envPath: VECTOR_MEMORY_ENV_PATH,
+      statePath: path.join(WORKSPACE_DIR, 'memory', 'vector-index-state.json'),
+      qdrantUrl,
+      qdrantReachable: checkQdrantReachable(qdrantUrl),
+      scripts: {
+        index: hasExecutable(path.join(WORKSPACE_SCRIPTS_DIR, 'vector-memory-index.js')),
+        indexIfDue: hasExecutable(path.join(WORKSPACE_SCRIPTS_DIR, 'vector-memory-index-if-due.sh')),
+        runFromEnv: hasExecutable(path.join(WORKSPACE_SCRIPTS_DIR, 'vector-memory-run-from-env.sh')),
+        query: hasExecutable(path.join(WORKSPACE_SCRIPTS_DIR, 'vector-memory-query.js')),
+        context: hasExecutable(path.join(WORKSPACE_SCRIPTS_DIR, 'memory-context.sh'))
+      }
+    },
+    openclawQdrantSidecar: {
+      enabled: qdrantSidecarEnabled,
+      envPath: QDRANT_MEMORY_ENV_PATH,
+      scripts: {
+        index: hasExecutable(path.join(OPENCLAW_SCRIPTS_DIR, 'qdrant-memory-index.mjs')),
+        indexIfDue: hasExecutable(path.join(OPENCLAW_SCRIPTS_DIR, 'qdrant-memory-index-if-due.sh')),
+        runFromEnv: hasExecutable(path.join(OPENCLAW_SCRIPTS_DIR, 'qdrant-memory-run-from-env.sh')),
+        query: hasExecutable(path.join(OPENCLAW_SCRIPTS_DIR, 'qdrant-memory-query.mjs')),
+        context: hasExecutable(path.join(OPENCLAW_SCRIPTS_DIR, 'qdrant-memory-context.sh'))
+      }
+    },
+    tonl: {
+      pluginPath: TONL_PLUGIN_PATH,
+      manifestPath: TONL_PLUGIN_MANIFEST_PATH,
+      pluginExists: hasExecutable(TONL_PLUGIN_PATH),
+      manifestExists: hasExecutable(TONL_PLUGIN_MANIFEST_PATH),
+      configPath: OPENCLAW_CONFIG_PATH,
+      pluginAllowed: tonlConfigured,
+      pluginLoadPathConfigured: tonlLoadPathConfigured,
+      minChars: Number(process.env.OPENCLAW_TONL_MIN_CHARS || 600),
+      recent: extractTonlRecentStats()
+    }
+  };
+}
+
+function runActionCommand(res, command, opts = {}) {
+  const timeout = Number(opts.timeout || 120000);
+  const cwd = opts.cwd || WORKSPACE_DIR;
+  exec(command, { cwd, timeout, maxBuffer: 1024 * 1024 * 2 }, (err, stdout, stderr) => {
+    const output = (stdout || stderr || '').trim();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: !err,
+      output: output || (err ? '' : 'Completed'),
+      error: err ? err.message : undefined
+    }));
+  });
+}
 
 const DEFAULT_MODEL_PRICING = {
   'anthropic/claude-opus-4-6': { input: 15.00, output: 75.00, cacheRead: 1.875, cacheWrite: 18.75 },
@@ -1973,6 +2148,11 @@ const server = http.createServer((req, res) => {
       res.end(JSON.stringify({ name: 'OpenClaw Dashboard', version: '1.0.0' }));
       return;
     }
+    if (req.url === '/api/integrations') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(getIntegrationStatus()));
+      return;
+    }
     if (req.url === '/api/claude-usage-scrape' && req.method === 'POST') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       if (fs.existsSync(scrapeScript)) {
@@ -2205,6 +2385,75 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: !err, output: (stdout || '').trim() }));
       });
+      return;
+    }
+    if (req.url === '/api/action/vector-memory-index' && req.method === 'POST') {
+      const script = path.join(WORKSPACE_SCRIPTS_DIR, 'vector-memory-index.js');
+      if (!hasExecutable(script)) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: `Script not found: ${script}` }));
+        return;
+      }
+      auditLog('action_vector_memory_index', ip);
+      const command = `bash -lc ${shellQuote(`set -a; source ${shellQuote(VECTOR_MEMORY_ENV_PATH)}; set +a; node ${shellQuote(script)}`)}`;
+      runActionCommand(res, command, { cwd: WORKSPACE_DIR, timeout: 300000 });
+      return;
+    }
+    if (req.url === '/api/action/vector-memory-index-if-due' && req.method === 'POST') {
+      const script = path.join(WORKSPACE_SCRIPTS_DIR, 'vector-memory-index-if-due.sh');
+      if (!hasExecutable(script)) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: `Script not found: ${script}` }));
+        return;
+      }
+      auditLog('action_vector_memory_index_if_due', ip);
+      runActionCommand(res, `bash ${shellQuote(script)}`, { cwd: WORKSPACE_DIR, timeout: 180000 });
+      return;
+    }
+    if (req.url === '/api/action/vector-memory-run' && req.method === 'POST') {
+      const script = path.join(WORKSPACE_SCRIPTS_DIR, 'vector-memory-run-from-env.sh');
+      if (!hasExecutable(script)) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: `Script not found: ${script}` }));
+        return;
+      }
+      auditLog('action_vector_memory_run', ip);
+      runActionCommand(res, `bash ${shellQuote(script)}`, { cwd: WORKSPACE_DIR, timeout: 180000 });
+      return;
+    }
+    if (req.url === '/api/action/qdrant-memory-index' && req.method === 'POST') {
+      const script = path.join(OPENCLAW_SCRIPTS_DIR, 'qdrant-memory-index.mjs');
+      if (!hasExecutable(script)) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: `Script not found: ${script}` }));
+        return;
+      }
+      auditLog('action_qdrant_memory_index', ip);
+      const command = `bash -lc ${shellQuote(`set -a; source ${shellQuote(QDRANT_MEMORY_ENV_PATH)}; set +a; node ${shellQuote(script)}`)}`;
+      runActionCommand(res, command, { cwd: OPENCLAW_REPO_DIR, timeout: 300000 });
+      return;
+    }
+    if (req.url === '/api/action/qdrant-memory-run' && req.method === 'POST') {
+      const script = path.join(OPENCLAW_SCRIPTS_DIR, 'qdrant-memory-run-from-env.sh');
+      if (!hasExecutable(script)) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: `Script not found: ${script}` }));
+        return;
+      }
+      auditLog('action_qdrant_memory_run', ip);
+      runActionCommand(res, `bash ${shellQuote(script)}`, { cwd: OPENCLAW_REPO_DIR, timeout: 180000 });
+      return;
+    }
+    if (req.url === '/api/action/tonl-check-config' && req.method === 'POST') {
+      auditLog('action_tonl_check_config', ip);
+      const command = `bash -lc ${shellQuote(`rg -n "tonl-tool-result-persist|plugins\\.load\\.paths|plugins\\.allow" ${shellQuote(OPENCLAW_CONFIG_PATH)} -S || true`)}`;
+      runActionCommand(res, command, { cwd: OPENCLAW_REPO_DIR, timeout: 30000 });
+      return;
+    }
+    if (req.url === '/api/action/tonl-check-sessions' && req.method === 'POST') {
+      auditLog('action_tonl_check_sessions', ip);
+      const command = `bash -lc ${shellQuote(`rg -n "\\[format: tonl\\]|\\"tonl\\"\\s*:\\s*\\{" ${shellQuote(sessDir)} -S | tail -n 20 || true`)}`;
+      runActionCommand(res, command, { cwd: OPENCLAW_REPO_DIR, timeout: 30000 });
       return;
     }
     if (req.url === '/api/tailscale') {

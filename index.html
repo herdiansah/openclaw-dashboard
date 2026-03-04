@@ -1449,6 +1449,17 @@ body {
             <button onclick="quickAction('sys-update', event)" class="qa-btn qa-danger">📦 Apt Update</button>
             <button onclick="quickAction('disk-cleanup', event)" class="qa-btn">💾 Disk Cleanup</button>
             <button onclick="quickAction('restart-claude', event)" class="qa-btn">🤖 Restart Claude Tmux</button>
+            <button onclick="quickAction('vector-memory-index', event)" class="qa-btn">🧠 Vector Index Now</button>
+            <button onclick="quickAction('vector-memory-index-if-due', event)" class="qa-btn">🧠 Vector If Due</button>
+            <button onclick="quickAction('vector-memory-run', event)" class="qa-btn">🧠 Vector Run Env</button>
+            <button onclick="quickAction('qdrant-memory-index', event)" class="qa-btn">📚 Qdrant Index Now</button>
+            <button onclick="quickAction('qdrant-memory-run', event)" class="qa-btn">📚 Qdrant Run Env</button>
+            <button onclick="quickAction('tonl-check-config', event)" class="qa-btn">🔍 TONL Config Check</button>
+            <button onclick="quickAction('tonl-check-sessions', event)" class="qa-btn">🔍 TONL Session Check</button>
+          </div>
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+            <h4 style="font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin:0 0 8px;">Memory Sidecar + TONL Status</h4>
+            <div id="integrationStatus" style="font-size:12px;color:var(--text-muted);">Loading integration status...</div>
           </div>
         </div>
         <div class="card">
@@ -4299,15 +4310,43 @@ function renderHealthSparklines() {
   renderSparkline('ramSparkline', 'ram', 'var(--blue)');
 }
 
+function renderIntegrationsStatus(data) {
+  const el = document.getElementById('integrationStatus');
+  if (!el) return;
+  if (!data || typeof data !== 'object') {
+    el.innerHTML = '<span style="color:var(--red);">Failed to load integration status</span>';
+    return;
+  }
+
+  const memory = data.memorySidecar || {};
+  const qdrant = data.openclawQdrantSidecar || {};
+  const tonl = data.tonl || {};
+  const recent = tonl.recent || null;
+  const tonlSavings = recent && recent.savedTokensEstimate > 0 ? `~${recent.savedTokensEstimate.toLocaleString()} tokens saved` : 'No recent TONL metadata';
+
+  const fmt = (ok) => ok ? '<span style="color:var(--green);">ON</span>' : '<span style="color:var(--red);">OFF</span>';
+  const yesNo = (ok) => ok ? '<span style="color:var(--green);">yes</span>' : '<span style="color:var(--red);">no</span>';
+
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div>Vector Sidecar: ${fmt(!!memory.enabled)} · Qdrant: ${yesNo(!!memory.qdrantReachable)}</div>
+      <div>OpenClaw Qdrant Sidecar: ${fmt(!!qdrant.enabled)}</div>
+      <div>TONL Plugin: ${yesNo(!!tonl.pluginExists && !!tonl.pluginAllowed && !!tonl.pluginLoadPathConfigured)} · min chars: <span class="mono">${tonl.minChars || 600}</span></div>
+      <div style="color:var(--text-muted);">${tonlSavings}</div>
+    </div>
+  `;
+}
+
 async function fetchNewData() {
   try {
-    const [cronsRes, gitRes, svcRes, memRes, tokRes, rtRes] = await Promise.all([
+    const [cronsRes, gitRes, svcRes, memRes, tokRes, rtRes, intRes] = await Promise.all([
       authFetch(API_BASE + '/api/crons'),
       authFetch(API_BASE + '/api/git'),
       authFetch(API_BASE + '/api/services'),
       authFetch(API_BASE + '/api/memory'),
       authFetch(API_BASE + '/api/tokens-today'),
-      authFetch(API_BASE + '/api/response-time')
+      authFetch(API_BASE + '/api/response-time'),
+      authFetch(API_BASE + '/api/integrations')
     ]);
     const crons = await cronsRes.json();
     const git = await gitRes.json();
@@ -4315,6 +4354,7 @@ async function fetchNewData() {
     const memFiles = await memRes.json();
     const tokens = await tokRes.json();
     const rt = await rtRes.json();
+    const integrations = await intRes.json();
 
     document.getElementById('servicesStatus').innerHTML = services.map((s, i) => {
       const isLast = i === services.length - 1;
@@ -4419,6 +4459,7 @@ window.runCronJob = async function(id) {
 
     const rtVal = rt.avgSeconds;
     document.getElementById('avgResponseTime').textContent = rtVal > 0 ? rtVal + 's' : '--';
+    renderIntegrationsStatus(integrations);
   } catch (e) { console.error('New data fetch error:', e); }
 }
 
@@ -4912,7 +4953,14 @@ async function quickAction(action, evt) {
     'check-update': null,
     'clear-cache': null,
     'gc': null,
-    'scrape-usage': null
+    'scrape-usage': null,
+    'vector-memory-index': 'Run vector-memory full reindex now? This may take several minutes.',
+    'vector-memory-index-if-due': null,
+    'vector-memory-run': null,
+    'qdrant-memory-index': 'Run OpenClaw qdrant-memory full reindex now? This may take several minutes.',
+    'qdrant-memory-run': null,
+    'tonl-check-config': null,
+    'tonl-check-sessions': null
   };
   
   if (confirmMsg[action] && !confirm(confirmMsg[action])) return;
@@ -4928,7 +4976,14 @@ async function quickAction(action, evt) {
     'check-update': '🔍 Checking...',
     'sys-update': '📦 Updating...',
     'disk-cleanup': '💾 Cleaning...',
-    'restart-claude': '🤖 Restarting...'
+    'restart-claude': '🤖 Restarting...',
+    'vector-memory-index': '🧠 Indexing...',
+    'vector-memory-index-if-due': '🧠 Checking...',
+    'vector-memory-run': '🧠 Running...',
+    'qdrant-memory-index': '📚 Indexing...',
+    'qdrant-memory-run': '📚 Running...',
+    'tonl-check-config': '🔍 Checking...',
+    'tonl-check-sessions': '🔍 Scanning...'
   };
 
   const evtTarget = evt && evt.target ? evt.target : null;

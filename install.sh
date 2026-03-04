@@ -60,6 +60,12 @@ if [ ! -d "$OPENCLAW_DIR" ]; then
   fi
 fi
 
+# Integration defaults (memory sidecar + TONL)
+OPENCLAW_REPO_DIR="${OPENCLAW_REPO_DIR:-$WORKSPACE_DIR/openclaw}"
+VECTOR_MEMORY_ENV="${VECTOR_MEMORY_ENV:-$WORKSPACE_DIR/config/vector-memory.env}"
+OPENCLAW_QDRANT_ENV_FILE="${OPENCLAW_QDRANT_ENV_FILE:-$OPENCLAW_REPO_DIR/qdrant-setup/qdrant-memory.env}"
+OPENCLAW_CONFIG_PATH="${OPENCLAW_CONFIG_PATH:-$OPENCLAW_DIR/openclaw.json}"
+
 # Port selection
 DASHBOARD_PORT="${DASHBOARD_PORT:-7000}"
 read -p "Dashboard port (default: $DASHBOARD_PORT): " input
@@ -87,6 +93,7 @@ echo "📋 Installation Summary"
 echo "----------------------"
 echo "Workspace:     $WORKSPACE_DIR"
 echo "OpenClaw Dir:  $OPENCLAW_DIR"
+echo "OpenClaw Repo: $OPENCLAW_REPO_DIR"
 echo "Port:          $DASHBOARD_PORT"
 echo "Token:         ${DASHBOARD_TOKEN:0:8}..."
 echo "Install Dir:   $(pwd)"
@@ -116,6 +123,10 @@ Environment=DASHBOARD_PORT=$DASHBOARD_PORT
 Environment=DASHBOARD_TOKEN=$DASHBOARD_TOKEN
 Environment=WORKSPACE_DIR=$WORKSPACE_DIR
 Environment=OPENCLAW_DIR=$OPENCLAW_DIR
+Environment=OPENCLAW_REPO_DIR=$OPENCLAW_REPO_DIR
+Environment=VECTOR_MEMORY_ENV=$VECTOR_MEMORY_ENV
+Environment=OPENCLAW_QDRANT_ENV_FILE=$OPENCLAW_QDRANT_ENV_FILE
+Environment=OPENCLAW_CONFIG_PATH=$OPENCLAW_CONFIG_PATH
 Restart=always
 RestartSec=5
 
