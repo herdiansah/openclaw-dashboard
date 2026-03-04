@@ -1425,6 +1425,14 @@ body {
         <span class="icon">🧠</span>
         <span class="nav-text">Memory</span>
       </div>
+      <div class="nav-item" data-page="qdrant-sidecar">
+        <span class="icon">📚</span>
+        <span class="nav-text">Qdrant Sidecar</span>
+      </div>
+      <div class="nav-item" data-page="tonl-tools">
+        <span class="icon">🧩</span>
+        <span class="nav-text">TONL Tools</span>
+      </div>
       <div class="nav-item" data-page="files">
         <span class="icon">📁</span>
         <span class="nav-text">Files</span>
@@ -1615,10 +1623,8 @@ body {
             <button onclick="quickAction('vector-memory-index', event)" class="qa-btn">🧠 Vector Index Now</button>
             <button onclick="quickAction('vector-memory-index-if-due', event)" class="qa-btn">🧠 Vector If Due</button>
             <button onclick="quickAction('vector-memory-run', event)" class="qa-btn">🧠 Vector Run Env</button>
-            <button onclick="quickAction('qdrant-memory-index', event)" class="qa-btn">📚 Qdrant Index Now</button>
-            <button onclick="quickAction('qdrant-memory-run', event)" class="qa-btn">📚 Qdrant Run Env</button>
-            <button onclick="quickAction('tonl-check-config', event)" class="qa-btn">🔍 TONL Config Check</button>
-            <button onclick="quickAction('tonl-check-sessions', event)" class="qa-btn">🔍 TONL Session Check</button>
+            <button onclick="goToDashboardPage('qdrant-sidecar')" class="qa-btn">📚 Open Qdrant Page</button>
+            <button onclick="goToDashboardPage('tonl-tools')" class="qa-btn">🧩 Open TONL Page</button>
           </div>
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
             <h4 style="font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin:0 0 8px;">Memory Sidecar + TONL Status</h4>
@@ -2017,6 +2023,78 @@ body {
           <h3 class="card-title" id="memoryFileTitle">Select a file</h3>
           <div id="memoryFileContent" style="max-height:600px;overflow-y:auto;white-space:pre-wrap;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:var(--text-primary);"></div>
         </div>
+      </div>
+    </div>
+
+    <div class="page" id="qdrant-sidecar">
+      <div class="page-header">
+        <h1 class="page-title">Qdrant Sidecar</h1>
+        <p class="page-subtitle">Konfigurasi sidecar dan eksekusi script indexing OpenClaw</p>
+      </div>
+
+      <div class="grid grid-2 mb-24">
+        <div class="card">
+          <h3 class="card-title">Status</h3>
+          <div id="qdrantSidecarStatusPanel" style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--text-secondary);">
+            <div>Loading status...</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Actions</h3>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
+            <button onclick="quickAction('qdrant-memory-index', event)" class="qa-btn">📚 Qdrant Index Now</button>
+            <button onclick="quickAction('qdrant-memory-run', event)" class="qa-btn">📚 Qdrant Run Env</button>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:var(--text-muted);line-height:1.5;">
+            Gunakan menu ini untuk workflow Qdrant sidecar. Tombol sudah dipisah dari Quick Actions agar lebih jelas.
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-24">
+        <h3 class="card-title">Config Snapshot</h3>
+        <div id="qdrantSidecarConfigPanel" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;font-size:12px;"></div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Script Availability</h3>
+        <div id="qdrantSidecarScriptsPanel" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;font-size:12px;"></div>
+      </div>
+    </div>
+
+    <div class="page" id="tonl-tools">
+      <div class="page-header">
+        <h1 class="page-title">TONL Tools</h1>
+        <p class="page-subtitle">Validasi plugin TONL dan pengecekan metadata sesi</p>
+      </div>
+
+      <div class="grid grid-2 mb-24">
+        <div class="card">
+          <h3 class="card-title">Status</h3>
+          <div id="tonlStatusPanel" style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--text-secondary);">
+            <div>Loading status...</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Actions</h3>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
+            <button onclick="quickAction('tonl-check-config', event)" class="qa-btn">🔍 TONL Config Check</button>
+            <button onclick="quickAction('tonl-check-sessions', event)" class="qa-btn">🔍 TONL Session Check</button>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:var(--text-muted);line-height:1.5;">
+            Gunakan `Config Check` untuk verifikasi plugin dan `Session Check` untuk audit metadata TONL.
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-24">
+        <h3 class="card-title">Plugin Snapshot</h3>
+        <div id="tonlConfigPanel" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;font-size:12px;"></div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Recent Optimization Metadata</h3>
+        <div id="tonlRecentPanel" style="font-size:12px;color:var(--text-secondary);">Loading...</div>
       </div>
     </div>
 
@@ -3174,6 +3252,7 @@ let costs = {};
 let usage = {};
 let systemStats = {};
 let sessionsModelUsageData = null;
+let integrationsState = null;
 let feedPaused = true;
 let liveEventSource = null;
 let sortBy = 'updated';
@@ -3532,11 +3611,20 @@ document.querySelectorAll('.nav-item').forEach(item => {
     if (page === 'files') {
       fetchKeyFiles();
     }
+    if (page === 'qdrant-sidecar' || page === 'tonl-tools') {
+      if (integrationsState) renderIntegrationsPages(integrationsState);
+      else fetchNewData();
+    }
     if (window.innerWidth <= 768) {
       closeMobileSidebar();
     }
   });
 });
+
+window.goToDashboardPage = function goToDashboardPage(page) {
+  const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if (navItem) navItem.click();
+};
 
 document.querySelectorAll('.view-all-link').forEach(link => {
   link.addEventListener('click', (e) => {
@@ -4891,6 +4979,107 @@ function renderHealthSparklines() {
   renderSparkline('ramSparkline', 'ram', 'var(--blue)');
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderStateLine(label, ok) {
+  const color = ok ? 'var(--green)' : 'var(--red)';
+  const text = ok ? 'ON' : 'OFF';
+  return `<div style="display:flex;justify-content:space-between;gap:8px;"><span>${escapeHtml(label)}</span><span style="color:${color};font-weight:700;">${text}</span></div>`;
+}
+
+function renderMetaBox(label, value) {
+  return `
+    <div style="padding:10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;">
+      <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">${escapeHtml(label)}</div>
+      <div class="mono" style="font-size:12px;word-break:break-all;">${escapeHtml(value || '-')}</div>
+    </div>
+  `;
+}
+
+function renderIntegrationsPages(data) {
+  const qStatus = document.getElementById('qdrantSidecarStatusPanel');
+  const qCfg = document.getElementById('qdrantSidecarConfigPanel');
+  const qScripts = document.getElementById('qdrantSidecarScriptsPanel');
+  const tStatus = document.getElementById('tonlStatusPanel');
+  const tCfg = document.getElementById('tonlConfigPanel');
+  const tRecent = document.getElementById('tonlRecentPanel');
+  if (!qStatus || !qCfg || !qScripts || !tStatus || !tCfg || !tRecent) return;
+
+  if (!data || typeof data !== 'object') {
+    qStatus.innerHTML = '<div style="color:var(--red);">Failed to load status</div>';
+    qCfg.innerHTML = '';
+    qScripts.innerHTML = '';
+    tStatus.innerHTML = '<div style="color:var(--red);">Failed to load status</div>';
+    tCfg.innerHTML = '';
+    tRecent.innerHTML = '<div style="color:var(--red);">Failed to load data</div>';
+    return;
+  }
+
+  const memory = data.memorySidecar || {};
+  const qdrant = data.openclawQdrantSidecar || {};
+  const tonl = data.tonl || {};
+  const tonlReady = !!(tonl.pluginExists && tonl.pluginAllowed && tonl.pluginLoadPathConfigured);
+
+  qStatus.innerHTML = [
+    renderStateLine('OpenClaw Qdrant Sidecar', !!qdrant.enabled),
+    renderStateLine('Qdrant Reachable', !!memory.qdrantReachable),
+    renderStateLine('Vector Memory Sidecar', !!memory.enabled)
+  ].join('');
+
+  qCfg.innerHTML = [
+    renderMetaBox('Qdrant Env Path', qdrant.envPath || '-'),
+    renderMetaBox('Qdrant URL', memory.qdrantUrl || '-'),
+    renderMetaBox('State File', memory.statePath || '-'),
+    renderMetaBox('Mode', qdrant.enabled ? 'Enabled' : 'Disabled')
+  ].join('');
+
+  const scripts = qdrant.scripts || {};
+  qScripts.innerHTML = [
+    renderStateLine('index (qdrant-memory-index.mjs)', !!scripts.index),
+    renderStateLine('index-if-due', !!scripts.indexIfDue),
+    renderStateLine('run-from-env', !!scripts.runFromEnv),
+    renderStateLine('query', !!scripts.query),
+    renderStateLine('context', !!scripts.context)
+  ].join('');
+
+  tStatus.innerHTML = [
+    renderStateLine('TONL Plugin Ready', tonlReady),
+    renderStateLine('Plugin File Exists', !!tonl.pluginExists),
+    renderStateLine('Allowed in Config', !!tonl.pluginAllowed),
+    renderStateLine('Load Path Configured', !!tonl.pluginLoadPathConfigured)
+  ].join('');
+
+  tCfg.innerHTML = [
+    renderMetaBox('OpenClaw Config Path', tonl.configPath || '-'),
+    renderMetaBox('Plugin File Path', tonl.pluginPath || '-'),
+    renderMetaBox('Plugin Manifest Path', tonl.manifestPath || '-'),
+    renderMetaBox('Min Chars', String(tonl.minChars || 600))
+  ].join('');
+
+  const recent = tonl.recent || null;
+  if (!recent) {
+    tRecent.innerHTML = '<div style="color:var(--text-muted);">No recent TONL metadata found in latest sessions.</div>';
+    return;
+  }
+  tRecent.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
+      ${renderMetaBox('Session File', recent.sessionFile || '-')}
+      ${renderMetaBox('Saved Tokens Estimate', Number(recent.savedTokensEstimate || 0).toLocaleString())}
+      ${renderMetaBox('Original Tokens', Number(recent.originalTokensEstimate || 0).toLocaleString())}
+      ${renderMetaBox('TONL Tokens', Number(recent.tonlTokensEstimate || 0).toLocaleString())}
+      ${renderMetaBox('Original Chars', Number(recent.originalChars || 0).toLocaleString())}
+      ${renderMetaBox('TONL Chars', Number(recent.tonlChars || 0).toLocaleString())}
+    </div>
+  `;
+}
+
 function renderIntegrationsStatus(data) {
   const el = document.getElementById('integrationStatus');
   if (!el) return;
@@ -4916,6 +5105,7 @@ function renderIntegrationsStatus(data) {
       <div style="color:var(--text-muted);">${tonlSavings}</div>
     </div>
   `;
+  renderIntegrationsPages(data);
 }
 
 async function fetchNewData() {
@@ -4934,6 +5124,7 @@ async function fetchNewData() {
     const tokens = await tokRes.json();
     const rt = await rtRes.json();
     const integrations = await intRes.json();
+    integrationsState = integrations;
 
     document.getElementById('servicesStatus').innerHTML = services.map((s, i) => {
       const isLast = i === services.length - 1;
