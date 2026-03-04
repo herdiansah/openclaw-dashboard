@@ -2446,13 +2446,13 @@ const server = http.createServer((req, res) => {
     }
     if (req.url === '/api/action/tonl-check-config' && req.method === 'POST') {
       auditLog('action_tonl_check_config', ip);
-      const command = `bash -lc ${shellQuote(`rg -n "tonl-tool-result-persist|plugins\\.load\\.paths|plugins\\.allow" ${shellQuote(OPENCLAW_CONFIG_PATH)} -S || true`)}`;
+      const command = `bash -lc ${shellQuote(`if command -v rg >/dev/null 2>&1; then rg -n "tonl-tool-result-persist|plugins\\.load\\.paths|plugins\\.allow" ${shellQuote(OPENCLAW_CONFIG_PATH)} -S || true; else grep -nE "tonl-tool-result-persist|plugins\\.load\\.paths|plugins\\.allow" ${shellQuote(OPENCLAW_CONFIG_PATH)} || true; fi`)}`;
       runActionCommand(res, command, { cwd: OPENCLAW_REPO_DIR, timeout: 30000 });
       return;
     }
     if (req.url === '/api/action/tonl-check-sessions' && req.method === 'POST') {
       auditLog('action_tonl_check_sessions', ip);
-      const command = `bash -lc ${shellQuote(`rg -n "\\[format: tonl\\]|\\"tonl\\"\\s*:\\s*\\{" ${shellQuote(sessDir)} -S | tail -n 20 || true`)}`;
+      const command = `bash -lc ${shellQuote(`if command -v rg >/dev/null 2>&1; then rg -n "\\[format: tonl\\]|\\"tonl\\"\\s*:\\s*\\{" ${shellQuote(sessDir)} -S | tail -n 20 || true; else grep -RInE "\\[format: tonl\\]|\\\"tonl\\\"[[:space:]]*:[[:space:]]*\\{" ${shellQuote(sessDir)} | tail -n 20 || true; fi`)}`;
       runActionCommand(res, command, { cwd: OPENCLAW_REPO_DIR, timeout: 30000 });
       return;
     }
